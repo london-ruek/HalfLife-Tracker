@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HalfLife">
+<meta name="theme-color" content="#0a0e17" id="theme-meta">
+<title>HalfLife — Medication Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #0a0e17; --surface: #111827; --surface2: #1a2236;
+    --border: rgba(56,189,248,0.12); --border2: rgba(56,189,248,0.25);
+    --cyan: #38bdf8; --cyan-dim: rgba(56,189,248,0.15);
+    --text: #e2e8f0; --muted: #64748b;
+    --green: #34d399; --amber: #fbbf24; --red: #f87171; --accent: #818cf8;
+    --font: 'IBM Plex Sans', sans-serif; --mono: 'IBM Plex Mono', monospace;
+    --shadow: none;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html.light {
+    --bg: #f1f5f9; --surface: #ffffff; --surface2: #f8fafc;
+    --border: rgba(15,23,42,0.10); --border2: rgba(15,23,42,0.18);
+    --cyan: #0284c7; --cyan-dim: rgba(2,132,199,0.10);
+    --text: #0f172a; --muted: #64748b;
+    --green: #16a34a; --amber: #d97706; --red: #dc2626; --accent: #7c3aed;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--font); font-size: 14px;
+    transition: background 0.2s, color 0.2s;
+    /* Prevent iOS bounce */
+    position: fixed; width: 100%;
+  }
+
+  .app {
+    display: flex; flex-direction: column;
+    height: 100vh;
+    height: 100dvh; /* dynamic viewport height for mobile */
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+  }
+
+  .header {
+    padding: 12px 20px;
+    padding-top: max(12px, var(--safe-top));
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; background: var(--surface);
+  }
+  .logo { font-family: var(--mono); font-size: 16px; font-weight: 500; color: var(--cyan); letter-spacing: 0.05em; }
+  .logo span { color: var(--muted); }
+
+  .nav {
+    display: flex; gap: 2px; padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto; flex-shrink: 0;
+    background: var(--surface);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    padding: 6px 14px; border-radius: 6px; border: none;
+    background: transparent; color: var(--muted);
+    font-family: var(--font); font-size: 13px;
+    cursor: pointer; white-space: nowrap; transition: all 0.15s;
+    -webkit-user-select: none; user-select: none;
+  }
+  .nav-btn.active { background: var(--cyan-dim); color: var(--cyan); border: 1px solid var(--border2); }
+  .nav-btn:hover:not(.active) { color: var(--text); background: var(--surface2); }
+
+  .main {
+    flex: 1; overflow-y: auto; padding: 20px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  .card-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+  input, select, textarea {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 6px; color: var(--text); font-family: var(--font);
+    font-size: 16px; /* 16px prevents iOS zoom on focus */
+    padding: 8px 10px; width: 100%; outline: none;
+    transition: border-color 0.15s; appearance: none; -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--cyan); }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+  select option { background: var(--surface); color: var(--text); }
+  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; margin-top: 10px; }
+  label:first-child { margin-top: 0; }
+
+  .btn {
+    padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border2);
+    background: var(--cyan-dim); color: var(--cyan);
+    font-family: var(--font); font-size: 14px;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    -webkit-user-select: none; user-select: none;
+    touch-action: manipulation;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-danger { background: rgba(248,113,113,0.1); color: var(--red); border-color: rgba(248,113,113,0.3); }
+  .btn-sm { padding: 6px 10px; font-size: 13px; }
+  .btn-green { background: rgba(52,211,153,0.1); color: var(--green); border-color: rgba(52,211,153,0.3); }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .med-pill { display: flex; align-items: flex-start; justify-content: space-between; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; gap: 8px; }
+  .med-info { flex: 1; }
+  .med-name { font-weight: 500; font-size: 14px; }
+  .med-sub { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+  .med-dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; margin-top: 4px; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+  .stat-val { font-family: var(--mono); font-size: 20px; color: var(--cyan); font-weight: 500; }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  .chart-wrap { position: relative; width: 100%; height: 240px; }
+  .log-entry { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .log-entry:last-child { border-bottom: none; }
+  .log-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .log-main { flex: 1; }
+  .log-name { font-weight: 500; font-size: 13px; }
+  .log-detail { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+
+  .scroll-list { max-height: 280px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .scroll-list::-webkit-scrollbar { width: 3px; }
+  .scroll-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  .empty { text-align: center; color: var(--muted); padding: 24px; font-size: 13px; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+  .hormone-group { background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .hormone-group-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .hormone-group-name { font-family: var(--mono); font-size: 14px; color: var(--cyan); font-weight: 500; }
+  .hormone-total { font-family: var(--mono); font-size: 13px; padding: 4px 10px; border-radius: 5px; background: var(--cyan-dim); color: var(--cyan); border: 1px solid var(--border2); }
+  .hormone-compounds { padding-left: 8px; border-left: 2px solid var(--border2); }
+
+  .chart-toggle { display: flex; gap: 4px; margin-bottom: 12px; }
+  .chart-toggle-btn { padding: 5px 12px; border-radius: 5px; border: 1px solid var(--border2); background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; font-family: var(--font); transition: all 0.12s; touch-action: manipulation; }
+  .chart-toggle-btn.active { background: var(--cyan-dim); color: var(--cyan); }
+
+  .preset-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+  .preset-pill { padding: 5px 10px; border-radius: 4px; background: var(--surface2); border: 1px solid var(--border2); color: var(--muted); font-size: 11px; cursor: pointer; font-family: var(--mono); transition: all 0.12s; white-space: nowrap; touch-action: manipulation; }
+  .preset-pill:active { color: var(--cyan); border-color: var(--cyan); background: var(--cyan-dim); }
+
+  .info-box { background: var(--cyan-dim); border: 1px solid var(--border2); border-radius: 6px; padding: 10px 12px; font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
+  .info-box strong { color: var(--cyan); }
+
+  .ss-card { background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  .ss-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .ss-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .ss-name { font-weight: 500; font-size: 14px; }
+  .ss-unit { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-left: auto; }
+  .ss-milestones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+  .ss-milestone { background: var(--surface); border-radius: 7px; padding: 10px 8px; text-align: center; border: 1px solid var(--border); }
+  .ss-pct { font-family: var(--mono); font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .ss-time { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .ss-bar-wrap { height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
+  .ss-bar { height: 100%; border-radius: 3px; }
+  .ss-bar-label { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .ss-peak-info { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .ss-peak-info strong { color: var(--text); }
+
+  .range-badge { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 11px; padding: 3px 8px; border-radius: 5px; font-weight: 500; }
+  .range-badge.green  { background: rgba(52,211,153,0.12);  color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+  .range-badge.amber  { background: rgba(251,191,36,0.12);   color: var(--amber); border: 1px solid rgba(251,191,36,0.3); }
+  .range-badge.red    { background: rgba(248,113,113,0.12);  color: var(--red);   border: 1px solid rgba(248,113,113,0.3); }
+
+  .blood-entry { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  .blood-entry-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .blood-entry-date { font-weight: 500; font-size: 14px; }
+  .blood-entry-meds { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .blood-markers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .blood-marker-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: border-color 0.15s; touch-action: manipulation; }
+  .blood-marker-card:active { border-color: var(--cyan); }
+  .blood-marker-name { font-size: 11px; color: var(--muted); margin-bottom: 5px; font-family: var(--mono); }
+  .blood-marker-value { font-size: 15px; font-weight: 500; font-family: var(--mono); margin-bottom: 5px; }
+  .blood-marker-range { font-size: 10px; color: var(--muted); font-family: var(--mono); margin-top: 3px; }
+  .range-bar-wrap { height: 4px; background: var(--surface2); border-radius: 2px; margin-top: 5px; }
+  .range-bar-fill { height: 100%; border-radius: 2px; }
+
+  /* Flag cards */
+  .flag-card { display: flex; align-items: flex-start; gap: 10px; background: var(--surface2); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; border-left: 3px solid; }
+  .flag-card.red   { border-left-color: var(--red); }
+  .flag-card.amber { border-left-color: var(--amber); }
+  .flag-card.warn  { border-left-color: #fb923c; }
+  .flag-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .flag-main { flex: 1; }
+  .flag-title { font-weight: 500; font-size: 13px; }
+  .flag-detail { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+
+  /* Trend overlay */
+  .trend-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; align-items: flex-end; padding: 0; }
+  @media (min-width: 480px) { .trend-overlay { align-items: center; padding: 20px; } }
+  html.light .trend-overlay { background: rgba(0,0,0,0.45); }
+  .trend-modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 16px 16px 0 0; padding: 20px;
+    width: 100%; max-height: 85vh; overflow-y: auto;
+    padding-bottom: calc(20px + var(--safe-bottom));
+  }
+  @media (min-width: 480px) { .trend-modal { border-radius: 12px; max-width: 560px; margin: auto; padding-bottom: 20px; } }
+  .trend-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .trend-modal-title { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--cyan); }
+  .trend-close { background: none; border: none; color: var(--muted); font-size: 24px; cursor: pointer; line-height: 1; padding: 0 4px; touch-action: manipulation; }
+  .trend-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .trend-stat { background: var(--surface2); border-radius: 7px; padding: 10px; text-align: center; }
+  .trend-stat-val { font-family: var(--mono); font-size: 14px; font-weight: 500; }
+  .trend-stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* Journal */
+  .journal-entry { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .journal-entry-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .journal-date { font-family: var(--mono); font-size: 12px; color: var(--cyan); }
+  .journal-mood { font-size: 18px; }
+  .journal-text { font-size: 13px; color: var(--text); line-height: 1.6; white-space: pre-wrap; }
+  .journal-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .journal-tag { font-size: 11px; font-family: var(--mono); padding: 2px 7px; border-radius: 4px; background: var(--cyan-dim); color: var(--cyan); border: 1px solid var(--border2); }
+  .mood-select { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .mood-btn { font-size: 22px; background: none; border: 2px solid transparent; border-radius: 8px; cursor: pointer; padding: 4px 6px; transition: border-color 0.12s; touch-action: manipulation; }
+  .mood-btn.selected { border-color: var(--cyan); background: var(--cyan-dim); }
+  .search-bar { position: relative; margin-bottom: 12px; }
+  .search-bar input { padding-left: 32px; }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; pointer-events: none; }
+
+  /* Ref ranges */
+  .ref-group { margin-bottom: 16px; }
+  .ref-group-title { font-family: var(--mono); font-size: 11px; color: var(--cyan); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .ref-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .ref-row:last-child { border-bottom: none; }
+  .ref-name { flex: 1; font-family: var(--mono); font-size: 12px; }
+  .ref-range { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .ref-custom { font-size: 11px; color: var(--amber); font-family: var(--mono); }
+  .ref-edit-btn { font-size: 12px; color: var(--muted); background: none; border: 1px solid var(--border); cursor: pointer; padding: 4px 10px; border-radius: 5px; font-family: var(--font); touch-action: manipulation; }
+  .ref-editor { background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; padding: 10px 12px; margin: 6px 0; display: none; }
+  .ref-editor.open { display: block; }
+  .ref-editor-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ref-editor-btns { display: flex; gap: 6px; margin-top: 8px; }
+
+  /* Export */
+  .export-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 14px; }
+  .export-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .export-info { flex: 1; min-width: 0; }
+  .export-name { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
+  .export-desc { font-size: 11px; color: var(--muted); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .export-count { font-family: var(--mono); font-size: 11px; margin-top: 3px; color: var(--cyan); }
+
+  /* Install banner */
+  .install-banner {
+    background: var(--surface);
+    border-top: 1px solid var(--border2);
+    padding: 12px 20px;
+    padding-bottom: calc(12px + var(--safe-bottom));
+    display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+  .install-banner-text { flex: 1; font-size: 13px; }
+  .install-banner-text strong { color: var(--cyan); display: block; margin-bottom: 2px; }
+  .install-banner-text span { color: var(--muted); font-size: 12px; }
+
+  /* Theme btn */
+  .theme-btn { background: none; border: 1px solid var(--border2); border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 16px; color: var(--muted); transition: all 0.15s; touch-action: manipulation; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: calc(20px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); background: var(--green); color: #052e1c; font-family: var(--mono); font-size: 12px; padding: 8px 18px; border-radius: 6px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+
+  /* Offline indicator */
+  .offline-bar { background: var(--amber); color: #422006; font-size: 12px; font-family: var(--mono); text-align: center; padding: 4px; display: none; flex-shrink: 0; }
+  .offline-bar.show { display: block; }
+
+  @media (max-width: 480px) {
+    .form-row { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .export-block { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="offline-bar" id="offline-bar">Offline — all data saved locally</div>
+  <div class="header">
+    <div class="logo">HALF<span>LIFE</span></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="font-family:var(--mono);font-size:11px;color:var(--muted)" id="current-time"></div>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    </div>
+  </div>
+  <div class="nav" id="main-nav">
+    <button class="nav-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
+    <button class="nav-btn" onclick="switchTab('steadystate',this)">Steady State</button>
+    <button class="nav-btn" onclick="switchTab('medications',this)">Medications</button>
+    <button class="nav-btn" onclick="switchTab('log',this)">Dose Log</button>
+    <button class="nav-btn" onclick="switchTab('schedule',this)">Schedule</button>
+    <button class="nav-btn" onclick="switchTab('bloodwork',this)">Bloodwork</button>
+    <button class="nav-btn" onclick="switchTab('journal',this)">Journal</button>
+    <button class="nav-btn" onclick="switchTab('ranges',this)">Ranges</button>
+    <button class="nav-btn" onclick="switchTab('export',this)">Export</button>
+  </div>
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="tab-dashboard">
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" id="dash-med-count">0</div><div class="stat-lbl">Compounds</div></div>
+        <div class="stat-card"><div class="stat-val" id="dash-hormone-count">0</div><div class="stat-lbl">Pools</div></div>
+        <div class="stat-card"><div class="stat-val" id="dash-doses-today">0</div><div class="stat-lbl">Today</div></div>
+      </div>
+      <div class="card" id="flags-card" style="display:none;">
+        <div class="card-title">⚑ Active Flags</div>
+        <div id="dash-flags"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Active Hormone Loads</div>
+        <div id="dash-hormone-groups"><div class="empty">Add medications and log doses to see hormone loads.</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Saturation Curves</div>
+        <div class="chart-toggle">
+          <button class="chart-toggle-btn active" onclick="setChartMode('hormone',this)">By Hormone</button>
+          <button class="chart-toggle-btn" onclick="setChartMode('compound',this)">By Compound</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;" id="curve-legend"></div>
+        <div class="chart-wrap"><canvas id="satChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Recent Doses</div>
+        <div class="scroll-list" id="dash-recent"><div class="empty">No doses logged.</div></div>
+      </div>
+    </div>
+
+    <!-- STEADY STATE -->
+    <div class="section" id="tab-steadystate">
+      <div class="info-box"><strong>Css = dose ÷ (1 − 0.5^(interval/t½))</strong> — 90%, 95%, 99% milestones shown.</div>
+      <div class="card">
+        <div class="card-title">Protocol Simulator</div>
+        <label>Compound</label>
+        <select id="ss-med-select" onchange="ssSyncDefaults()"><option value="">— Select —</option></select>
+        <div class="form-row">
+          <div><label>Dose</label><input type="number" id="ss-dose" placeholder="e.g. 200" step="0.01" min="0" inputmode="decimal"></div>
+          <div><label>Interval (hours)</label><input type="number" id="ss-interval" placeholder="e.g. 84" step="0.5" min="0.5" value="84" inputmode="decimal"></div>
+        </div>
+        <div style="margin-top:14px;"><button class="btn" onclick="runSsSimulator()">Calculate</button></div>
+        <div id="ss-simulator-result" style="margin-top:14px;"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Steady State — Active Schedules</div>
+        <div id="ss-schedule-list"><div class="empty">Add scheduled protocols in the Schedule tab.</div></div>
+      </div>
+    </div>
+
+    <!-- MEDICATIONS -->
+    <div class="section" id="tab-medications">
+      <div class="card">
+        <div class="card-title">Add Compound</div>
+        <div class="info-box">Set <strong>Active Hormone</strong> for ester compounds — they'll be pooled together on the dashboard.</div>
+        <label>Compound Name</label><input type="text" id="med-name" placeholder="e.g. Testosterone Enanthate" autocomplete="off">
+        <label>Active Hormone (for pooling)</label><input type="text" id="med-hormone" placeholder="e.g. Testosterone" autocomplete="off">
+        <div class="form-row">
+          <div><label>Category</label><select id="med-category"><option value="HRT">HRT</option><option value="PED">PED</option><option value="Peptide">Peptide</option><option value="Oral">Oral</option><option value="Injectable">Injectable</option><option value="Supplement">Supplement</option><option value="Other">Other</option></select></div>
+          <div><label>Unit</label><select id="med-unit"><option value="mg">mg</option><option value="mcg">mcg</option><option value="IU">IU</option><option value="mg/mL">mg/mL</option><option value="mcg/mL">mcg/mL</option><option value="IU/mL">IU/mL</option></select></div>
+        </div>
+        <label>Quick Presets</label>
+        <div class="preset-pills" id="ester-presets"></div>
+        <div class="form-row">
+          <div><label>Half-Life (hours)</label><input type="number" id="med-halflife" placeholder="e.g. 108" step="0.1" min="0.1" inputmode="decimal"></div>
+          <div><label>Conversion Factor</label><input type="number" id="med-conversion" placeholder="e.g. 0.72" step="0.01" min="0.01" max="1" value="1" inputmode="decimal"></div>
+        </div>
+        <div class="form-row">
+          <div><label>Standard Dose</label><input type="number" id="med-dose" placeholder="e.g. 200" step="0.01" min="0" inputmode="decimal"></div>
+          <div><label>Concentration</label><input type="number" id="med-concentration" placeholder="mg/mL" step="0.01" min="0" inputmode="decimal"></div>
+        </div>
+        <label>Notes</label><input type="text" id="med-notes" placeholder="Protocol notes..." autocomplete="off">
+        <div style="margin-top:14px;"><button class="btn" onclick="addMedication()">+ Add Compound</button></div>
+      </div>
+      <div class="card"><div class="card-title">Library</div><div id="med-list"><div class="empty">No compounds added yet.</div></div></div>
+    </div>
+
+    <!-- DOSE LOG -->
+    <div class="section" id="tab-log">
+      <div class="card">
+        <div class="card-title">Log a Dose</div>
+        <label>Compound</label><select id="log-med-select"><option value="">— Select —</option></select>
+        <div class="form-row">
+          <div><label>Amount</label><input type="number" id="log-amount" placeholder="Amount" step="0.01" min="0" inputmode="decimal"></div>
+          <div><label>Date &amp; Time</label><input type="datetime-local" id="log-time"></div>
+        </div>
+        <label>Volume injected (mL)</label><input type="number" id="log-volume" placeholder="e.g. 1 mL" step="0.01" min="0" inputmode="decimal">
+        <label>Notes</label><input type="text" id="log-note" placeholder="Optional note" autocomplete="off">
+        <div style="margin-top:14px;"><button class="btn" onclick="logDose()">Log Dose</button></div>
+      </div>
+      <div class="card">
+        <div class="card-title">History</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <select id="log-filter" style="flex:1;" onchange="renderLog()"><option value="">All compounds</option></select>
+          <button class="btn btn-sm btn-danger" onclick="clearLog()">Clear All</button>
+        </div>
+        <div class="scroll-list" id="log-list"><div class="empty">No doses logged.</div></div>
+      </div>
+    </div>
+
+    <!-- SCHEDULE -->
+    <div class="section" id="tab-schedule">
+      <div class="card">
+        <div class="card-title">Schedule Future Doses</div>
+        <label>Compound</label><select id="sched-med"><option value="">— Select —</option></select>
+        <div class="form-row">
+          <div><label>Amount</label><input type="number" id="sched-amount" placeholder="Amount" step="0.01" min="0" inputmode="decimal"></div>
+          <div><label>Frequency</label><select id="sched-freq"><option value="86400000">Daily</option><option value="43200000">Twice daily</option><option value="259200000">Every 3 days</option><option value="302400000">Twice weekly</option><option value="604800000">Weekly</option><option value="1209600000">Every 2 weeks</option><option value="custom">Custom</option></select></div>
+        </div>
+        <div id="custom-interval-row" style="display:none;"><label>Custom interval (hours)</label><input type="number" id="sched-custom-hours" placeholder="e.g. 84" min="1" inputmode="numeric"></div>
+        <div class="form-row">
+          <div><label>Start</label><input type="date" id="sched-start"></div>
+          <div><label>End</label><input type="date" id="sched-end"></div>
+        </div>
+        <div style="margin-top:14px;"><button class="btn" onclick="addSchedule()">+ Add to Schedule</button></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Projected Saturation</div>
+        <div class="chart-toggle">
+          <button class="chart-toggle-btn active" onclick="setSchedChartMode('hormone',this)">By Hormone</button>
+          <button class="chart-toggle-btn" onclick="setSchedChartMode('compound',this)">By Compound</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;" id="sched-legend"></div>
+        <div class="chart-wrap" style="height:220px;"><canvas id="schedChart"></canvas></div>
+      </div>
+      <div class="card"><div class="card-title">Protocols</div><div id="sched-list"><div class="empty">No schedules added.</div></div></div>
+    </div>
+
+    <!-- BLOODWORK -->
+    <div class="section" id="tab-bloodwork">
+      <div class="card">
+        <div class="card-title">Log Blood Test</div>
+        <label>Test Date</label><input type="date" id="blood-date">
+        <div style="margin-top:10px;">
+          <div class="card-title" style="margin-bottom:4px;">Markers</div>
+          <div class="info-box" style="margin-bottom:8px;">Enter value with unit (e.g. <strong>850 ng/dL</strong>). Tap any saved marker to view its trend.</div>
+          <div id="blood-markers-input"></div>
+          <button class="btn btn-sm" style="margin-top:8px;" onclick="addMarkerInput()">+ Add Marker</button>
+        </div>
+        <label>Active compounds</label>
+        <div id="blood-meds-check" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;"></div>
+        <label style="margin-top:12px;">Notes</label>
+        <textarea id="blood-notes" rows="2" style="resize:none;" placeholder="Notes about this draw..."></textarea>
+        <div style="margin-top:14px;"><button class="btn" onclick="logBloodwork()">Save Results</button></div>
+      </div>
+      <div class="card"><div class="card-title">History</div><div id="blood-list"><div class="empty">No results logged.</div></div></div>
+    </div>
+
+    <!-- JOURNAL -->
+    <div class="section" id="tab-journal">
+      <div class="card">
+        <div class="card-title">New Entry</div>
+        <div class="form-row">
+          <div><label>Date</label><input type="date" id="journal-date"></div>
+          <div><label>Mood</label>
+            <div class="mood-select" id="mood-select">
+              <button class="mood-btn" data-mood="😊" onclick="selectMood(this)">😊</button>
+              <button class="mood-btn" data-mood="😐" onclick="selectMood(this)">😐</button>
+              <button class="mood-btn" data-mood="😴" onclick="selectMood(this)">😴</button>
+              <button class="mood-btn" data-mood="💪" onclick="selectMood(this)">💪</button>
+              <button class="mood-btn" data-mood="😓" onclick="selectMood(this)">😓</button>
+              <button class="mood-btn" data-mood="🤒" onclick="selectMood(this)">🤒</button>
+            </div>
+          </div>
+        </div>
+        <label>Notes</label>
+        <textarea id="journal-text" rows="4" style="resize:none;" placeholder="How are you feeling? Energy, sleep, libido, side effects, injection reactions..."></textarea>
+        <label>Tags (comma separated)</label>
+        <input type="text" id="journal-tags" placeholder="e.g. energy, sleep, sides" autocomplete="off">
+        <div style="margin-top:14px;"><button class="btn" onclick="addJournalEntry()">Save Entry</button></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Journal</div>
+        <div class="search-bar">
+          <span class="search-icon">⌕</span>
+          <input type="text" id="journal-search" placeholder="Search entries..." oninput="renderJournal()">
+        </div>
+        <div id="journal-list"><div class="empty">No entries yet.</div></div>
+      </div>
+    </div>
+
+    <!-- REFERENCE RANGES -->
+    <div class="section" id="tab-ranges">
+      <div class="info-box">Standard adult male lab reference values. Tap <strong>edit</strong> to set custom ranges — saved and applied everywhere.</div>
+      <div id="ranges-panel"></div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="section" id="tab-export">
+      <div class="info-box">Download data as <strong>CSV</strong> — opens in Excel, Google Sheets, or Numbers.</div>
+      <div class="export-block">
+        <div class="export-icon" style="background:rgba(56,189,248,0.12);color:var(--cyan);">💊</div>
+        <div class="export-info">
+          <div class="export-name">Medications</div>
+          <div class="export-desc">Name · Hormone · Half-life · CF · Dose</div>
+          <div class="export-count" id="export-med-count">0 compounds</div>
+        </div>
+        <button class="btn btn-green btn-sm" onclick="exportMedications()">↓ CSV</button>
+      </div>
+      <div class="export-block">
+        <div class="export-icon" style="background:rgba(129,140,248,0.12);color:var(--accent);">📋</div>
+        <div class="export-info">
+          <div class="export-name">Dose History</div>
+          <div class="export-desc">Date · Compound · Amount · Free hormone</div>
+          <div class="export-count" id="export-dose-count">0 entries</div>
+        </div>
+        <button class="btn btn-sm" style="background:rgba(129,140,248,0.12);color:var(--accent);border-color:rgba(129,140,248,0.3);" onclick="exportDoses()">↓ CSV</button>
+      </div>
+      <hr>
+      <div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0;">All data stored locally — never uploaded anywhere.</div>
+    </div>
+
+  </div>
+
+  <!-- Install banner -->
+  <div class="install-banner" id="install-banner" style="display:none;">
+    <div class="install-banner-text">
+      <strong>Install HalfLife</strong>
+      <span>Add to home screen for full offline use</span>
+    </div>
+    <button class="btn btn-sm btn-green" onclick="installPWA()">Install</button>
+    <button class="btn btn-sm btn-danger" onclick="dismissInstall()" style="padding:6px 8px;">✕</button>
+  </div>
+</div>
+
+<!-- Trend overlay -->
+<div class="trend-overlay" id="trend-overlay" style="display:none;" onclick="closeTrend(event)">
+  <div class="trend-modal" onclick="event.stopPropagation()">
+    <div class="trend-modal-header">
+      <span class="trend-modal-title" id="trend-title">Trend</span>
+      <button class="trend-close" onclick="closeTrend()">×</button>
+    </div>
+    <div class="trend-stats" id="trend-stats"></div>
+    <div class="info-box" style="margin-bottom:10px;font-size:11px;" id="trend-range-info"></div>
+    <div style="position:relative;width:100%;height:200px;"><canvas id="trendChart"></canvas></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ── PWA ────────────────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      console.log('SW registered:', reg.scope);
+    }).catch(err => console.log('SW failed:', err));
+  });
+}
+
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const dismissed = localStorage.getItem('hl_install_dismissed');
+  if (!dismissed) {
+    document.getElementById('install-banner').style.display = 'flex';
+  }
+});
+
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(choice => {
+    if (choice.outcome === 'accepted') showToast('HalfLife installed!');
+    deferredPrompt = null;
+    document.getElementById('install-banner').style.display = 'none';
+  });
+}
+function dismissInstall() {
+  document.getElementById('install-banner').style.display = 'none';
+  localStorage.setItem('hl_install_dismissed', '1');
+}
+
+window.addEventListener('online',  () => document.getElementById('offline-bar').classList.remove('show'));
+window.addEventListener('offline', () => document.getElementById('offline-bar').classList.add('show'));
+if (!navigator.onLine) document.getElementById('offline-bar').classList.add('show');
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+const MED_COLORS=['#38bdf8','#818cf8','#34d399','#fbbf24','#f87171','#a78bfa','#2dd4bf','#fb923c','#e879f9','#60a5fa','#86efac','#fcd34d'];
+const HORMONE_COLORS=['#38bdf8','#34d399','#f87171','#fbbf24','#818cf8','#2dd4bf','#fb923c'];
+const ESTER_PRESETS=[
+  {label:'Test E',name:'Testosterone Enanthate',hormone:'Testosterone',hl:108,cf:0.72,unit:'mg'},
+  {label:'Test C',name:'Testosterone Cypionate',hormone:'Testosterone',hl:192,cf:0.70,unit:'mg'},
+  {label:'Test P',name:'Testosterone Propionate',hormone:'Testosterone',hl:20,cf:0.83,unit:'mg'},
+  {label:'Test U',name:'Testosterone Undecanoate',hormone:'Testosterone',hl:336,cf:0.61,unit:'mg'},
+  {label:'NPP',name:'Nandrolone Phenylpropionate',hormone:'Nandrolone',hl:60,cf:0.67,unit:'mg'},
+  {label:'Deca',name:'Nandrolone Decanoate',hormone:'Nandrolone',hl:288,cf:0.64,unit:'mg'},
+  {label:'Mast E',name:'Masteron Enanthate',hormone:'Drostanolone',hl:108,cf:0.71,unit:'mg'},
+  {label:'Mast P',name:'Masteron Propionate',hormone:'Drostanolone',hl:60,cf:0.80,unit:'mg'},
+  {label:'Tren E',name:'Trenbolone Enanthate',hormone:'Trenbolone',hl:168,cf:0.72,unit:'mg'},
+  {label:'Tren A',name:'Trenbolone Acetate',hormone:'Trenbolone',hl:48,cf:0.87,unit:'mg'},
+  {label:'Bold U',name:'Boldenone Undecylenate',hormone:'Boldenone',hl:336,cf:0.61,unit:'mg'},
+  {label:'Primo E',name:'Primobolan Enanthate',hormone:'Methenolone',hl:168,cf:0.71,unit:'mg'},
+  {label:'BPC-157',name:'BPC-157',hormone:'',hl:4,cf:1,unit:'mcg'},
+  {label:'TB-500',name:'Thymosin Beta-4',hormone:'',hl:120,cf:1,unit:'mcg'},
+  {label:'Tadal.',name:'Tadalafil',hormone:'',hl:17.5,cf:1,unit:'mg'},
+  {label:'Statin',name:'Rosuvastatin',hormone:'',hl:19,cf:1,unit:'mg'},
+];
+const REF_LIBRARY=[
+  {key:'total testosterone',label:'Total Testosterone',min:300,max:1000,unit:'ng/dL',group:'Hormones'},
+  {key:'free testosterone',label:'Free Testosterone',min:5,max:21,unit:'ng/dL',group:'Hormones'},
+  {key:'estradiol',label:'Estradiol (E2)',min:10,max:42,unit:'pg/mL',group:'Hormones'},
+  {key:'e2',label:'E2',min:10,max:42,unit:'pg/mL',group:'Hormones'},
+  {key:'lh',label:'LH',min:1.7,max:8.6,unit:'mIU/mL',group:'Hormones'},
+  {key:'fsh',label:'FSH',min:1.5,max:12.4,unit:'mIU/mL',group:'Hormones'},
+  {key:'shbg',label:'SHBG',min:10,max:57,unit:'nmol/L',group:'Hormones'},
+  {key:'prolactin',label:'Prolactin',min:2,max:18,unit:'ng/mL',group:'Hormones'},
+  {key:'igf-1',label:'IGF-1',min:115,max:307,unit:'ng/mL',group:'Hormones'},
+  {key:'dhea-s',label:'DHEA-S',min:80,max:560,unit:'mcg/dL',group:'Hormones'},
+  {key:'cortisol',label:'Cortisol (AM)',min:6,max:23,unit:'mcg/dL',group:'Hormones'},
+  {key:'total cholesterol',label:'Total Cholesterol',min:0,max:200,unit:'mg/dL',group:'Lipids'},
+  {key:'cholesterol',label:'Cholesterol',min:0,max:200,unit:'mg/dL',group:'Lipids'},
+  {key:'ldl',label:'LDL',min:0,max:100,unit:'mg/dL',group:'Lipids'},
+  {key:'hdl',label:'HDL',min:40,max:999,unit:'mg/dL',group:'Lipids'},
+  {key:'triglycerides',label:'Triglycerides',min:0,max:150,unit:'mg/dL',group:'Lipids'},
+  {key:'glucose',label:'Glucose (fasting)',min:70,max:99,unit:'mg/dL',group:'Metabolic'},
+  {key:'hba1c',label:'HbA1c',min:0,max:5.7,unit:'%',group:'Metabolic'},
+  {key:'a1c',label:'HbA1c',min:0,max:5.7,unit:'%',group:'Metabolic'},
+  {key:'creatinine',label:'Creatinine',min:0.74,max:1.35,unit:'mg/dL',group:'Metabolic'},
+  {key:'egfr',label:'eGFR',min:60,max:999,unit:'mL/min',group:'Metabolic'},
+  {key:'alt',label:'ALT',min:7,max:56,unit:'U/L',group:'Metabolic'},
+  {key:'ast',label:'AST',min:10,max:40,unit:'U/L',group:'Metabolic'},
+  {key:'alp',label:'ALP',min:44,max:147,unit:'U/L',group:'Metabolic'},
+  {key:'ggt',label:'GGT',min:9,max:48,unit:'U/L',group:'Metabolic'},
+  {key:'bilirubin',label:'Bilirubin',min:0.2,max:1.2,unit:'mg/dL',group:'Metabolic'},
+  {key:'hemoglobin',label:'Hemoglobin',min:13.5,max:17.5,unit:'g/dL',group:'CBC'},
+  {key:'hgb',label:'Hemoglobin',min:13.5,max:17.5,unit:'g/dL',group:'CBC'},
+  {key:'hematocrit',label:'Hematocrit',min:38.8,max:50,unit:'%',group:'CBC'},
+  {key:'hct',label:'Hematocrit',min:38.8,max:50,unit:'%',group:'CBC'},
+  {key:'rbc',label:'RBC',min:4.7,max:6.1,unit:'M/µL',group:'CBC'},
+  {key:'wbc',label:'WBC',min:4.5,max:11,unit:'K/µL',group:'CBC'},
+  {key:'platelets',label:'Platelets',min:150,max:400,unit:'K/µL',group:'CBC'},
+  {key:'ferritin',label:'Ferritin',min:12,max:300,unit:'ng/mL',group:'CBC'},
+];
+const GROUP_ORDER=['Hormones','Lipids','Metabolic','CBC'];
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let state={medications:[],doses:[],schedules:[],bloodwork:[],customRanges:{},journal:[]};
+let chartMode='hormone',schedChartMode='hormone',selectedMood='';
+
+function saveState(){try{localStorage.setItem('halflife_v6',JSON.stringify(state));}catch(e){}}
+function loadState(){
+  try{
+    const s=localStorage.getItem('halflife_v6')||localStorage.getItem('halflife_v5')||localStorage.getItem('halflife_v4');
+    if(s){const p=JSON.parse(s);state={...state,...p};if(!state.customRanges)state.customRanges={};if(!state.journal)state.journal=[];}
+  }catch(e){}
+}
+
+// ── Theme ──────────────────────────────────────────────────────────────────────
+function toggleTheme(){
+  const isLight=document.documentElement.classList.toggle('light');
+  document.getElementById('theme-btn').textContent=isLight?'🌙':'☀️';
+  document.getElementById('theme-meta').content=isLight?'#f1f5f9':'#0a0e17';
+  try{localStorage.setItem('halflife_theme',isLight?'light':'dark');}catch(e){}
+}
+function loadTheme(){
+  const t=localStorage.getItem('halflife_theme');
+  if(t==='light'){document.documentElement.classList.add('light');document.getElementById('theme-btn').textContent='🌙';document.getElementById('theme-meta').content='#f1f5f9';}
+}
+
+// ── Ref ranges ─────────────────────────────────────────────────────────────────
+function canonicalKey(n){return n.toLowerCase().trim().replace(/\s+/g,' ');}
+function getRange(n){const k=canonicalKey(n);if(state.customRanges[k])return state.customRanges[k];const m=REF_LIBRARY.find(r=>k===r.key||k.includes(r.key)||r.key.includes(k));return m?{min:m.min,max:m.max,unit:m.unit,label:m.label,isDefault:true}:null;}
+function parseNum(v){if(!v)return null;const m=String(v).match(/[\d.]+/);return m?parseFloat(m[0]):null;}
+function classifyMarker(name,val){
+  const range=getRange(name),v=parseNum(val);
+  if(!range||v===null)return{status:'none',range,val:v};
+  if(v<range.min||v>range.max){if(v<range.min*0.8||v>range.max*1.2)return{status:'red',range,val:v};}
+  if(v>=range.min&&v<=range.max)return{status:'green',range,val:v};
+  return{status:'amber',range,val:v};
+}
+
+// ── PK math ────────────────────────────────────────────────────────────────────
+function calcCS(med,t){const hl=med.halfLife*3600000;if(!hl)return 0;let s=0;for(const d of state.doses){if(d.medId!==med.id)continue;const e=t-new Date(d.time).getTime();if(e<0)continue;s+=d.amount*Math.pow(0.5,e/hl);}return s;}
+function calcCSS(med,t){const hl=med.halfLife*3600000;if(!hl)return 0;let s=calcCS(med,t);for(const sc of state.schedules){if(sc.medId!==med.id)continue;const st=new Date(sc.start).getTime(),en=new Date(sc.end).getTime();let x=st;while(x<=en&&x<=t+90*24*3600000){if(x<=t)s+=sc.amount*Math.pow(0.5,(t-x)/hl);x+=sc.interval;}}return s;}
+function c2h(med,c){return c*(med.conversionFactor||1);}
+function getPools(){const p={};for(const m of state.medications){const k=m.hormone?m.hormone.trim():m.name;if(!p[k])p[k]=[];p[k].push(m);}return p;}
+function ssCalc(med,dose,ih){const hl=med.halfLife;if(!hl||!ih)return null;const r=Math.pow(0.5,ih/hl);if(r>=1)return null;const css=dose/(1-r);const ht=p=>Math.ceil(-Math.log(1-p)/Math.log(1/r)*ih);return{css,cssH:css*(med.conversionFactor||1),h90:ht(0.90),h95:ht(0.95),h99:ht(0.99)};}
+
+// ── Utilities ──────────────────────────────────────────────────────────────────
+function uid(){return Math.random().toString(36).substr(2,9);}
+function fmtDT(d){return new Date(d).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+function fmtN(n){if(n===0)return'0';if(n<0.001)return n.toExponential(2);if(n<1)return n.toFixed(3);if(n<100)return n.toFixed(2);return n.toFixed(1);}
+function fmtH(h){if(h<24)return h+'h';const d=Math.floor(h/24),w=Math.floor(d/7),wd=d%7;if(w>0&&wd===0)return w+'w';if(w>0)return w+'w '+wd+'d';return d+'d';}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+// ── Tab ────────────────────────────────────────────────────────────────────────
+function switchTab(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');btn.classList.add('active');
+  // Scroll nav to show active button
+  btn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  if(id==='dashboard')renderDashboard();
+  else if(id==='steadystate')renderSteadyState();
+  else if(id==='schedule'){renderScheduleList();renderSchedChart();}
+  else if(id==='log')renderLog();
+  else if(id==='bloodwork')renderBloodwork();
+  else if(id==='journal')renderJournal();
+  else if(id==='ranges')renderRangesPanel();
+  else if(id==='export')renderExportTab();
+}
+
+// ── Presets ────────────────────────────────────────────────────────────────────
+function renderEsterPresets(){document.getElementById('ester-presets').innerHTML=ESTER_PRESETS.map(p=>`<span class="preset-pill" onclick='fillPreset(${JSON.stringify(p)})'>${p.label}</span>`).join('');}
+function fillPreset(p){document.getElementById('med-name').value=p.name;document.getElementById('med-hormone').value=p.hormone;document.getElementById('med-halflife').value=p.hl;document.getElementById('med-conversion').value=p.cf;document.getElementById('med-unit').value=p.unit;}
+
+// ── Medications ────────────────────────────────────────────────────────────────
+function addMedication(){
+  const name=document.getElementById('med-name').value.trim(),hl=parseFloat(document.getElementById('med-halflife').value);
+  if(!name)return alert('Enter a compound name.');if(!hl||hl<=0)return alert('Enter a valid half-life.');
+  const med={id:uid(),name,hormone:document.getElementById('med-hormone').value.trim(),category:document.getElementById('med-category').value,halfLife:hl,unit:document.getElementById('med-unit').value,conversionFactor:parseFloat(document.getElementById('med-conversion').value)||1,dose:parseFloat(document.getElementById('med-dose').value)||null,concentration:parseFloat(document.getElementById('med-concentration').value)||null,notes:document.getElementById('med-notes').value.trim()};
+  state.medications.push(med);saveState();renderMedList();updateSelects();showToast(name+' added');
+  ['med-name','med-hormone','med-halflife','med-dose','med-concentration','med-notes'].forEach(id=>document.getElementById(id).value='');document.getElementById('med-conversion').value='1';
+}
+function removeMed(id){if(!confirm('Remove this compound?'))return;state.medications=state.medications.filter(m=>m.id!==id);state.doses=state.doses.filter(d=>d.medId!==id);state.schedules=state.schedules.filter(s=>s.medId!==id);saveState();renderMedList();updateSelects();renderLog();renderDashboard();}
+function renderMedList(){const el=document.getElementById('med-list');if(!state.medications.length){el.innerHTML='<div class="empty">No compounds added yet.</div>';return;}el.innerHTML=state.medications.map((m,i)=>`<div class="med-pill"><div class="med-dot" style="background:${MED_COLORS[i%MED_COLORS.length]}"></div><div class="med-info"><div class="med-name">${m.name}</div><div class="med-sub">t½ ${m.halfLife}h · CF ${Math.round((m.conversionFactor||1)*100)}%${m.hormone?' → '+m.hormone:''}</div></div><button class="btn btn-sm btn-danger" onclick="removeMed('${m.id}')">×</button></div>`).join('');}
+
+// ── Selects ────────────────────────────────────────────────────────────────────
+function updateSelects(){
+  const opts=state.medications.map(m=>`<option value="${m.id}">${m.name}</option>`).join(''),def='<option value="">— Select —</option>';
+  ['log-med-select','sched-med','ss-med-select'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=def+opts;});
+  const lf=document.getElementById('log-filter');if(lf)lf.innerHTML='<option value="">All</option>'+opts;
+  const bmc=document.getElementById('blood-meds-check');if(bmc)bmc.innerHTML=state.medications.map((m,i)=>`<label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text);cursor:pointer;padding:3px 0;"><input type="checkbox" value="${m.id}" style="width:auto;"> <span style="color:${MED_COLORS[i%MED_COLORS.length]}">${m.name}</span></label>`).join('');
+  const ls=document.getElementById('log-med-select');if(ls)ls.onchange=function(){const med=state.medications.find(m=>m.id===this.value);if(med&&med.dose)document.getElementById('log-amount').value=med.dose;};
+}
+
+// ── Dose Log ───────────────────────────────────────────────────────────────────
+function logDose(){const medId=document.getElementById('log-med-select').value;if(!medId)return alert('Select a compound.');const amount=parseFloat(document.getElementById('log-amount').value);if(!amount||amount<=0)return alert('Enter a valid amount.');const time=document.getElementById('log-time').value;if(!time)return alert('Select date & time.');state.doses.push({id:uid(),medId,amount,volume:parseFloat(document.getElementById('log-volume').value)||null,time:new Date(time).toISOString(),note:document.getElementById('log-note').value.trim()});state.doses.sort((a,b)=>new Date(b.time)-new Date(a.time));saveState();renderLog();renderDashboard();document.getElementById('log-amount').value='';document.getElementById('log-volume').value='';document.getElementById('log-note').value='';showToast('Dose logged');}
+function removeLogEntry(id){state.doses=state.doses.filter(d=>d.id!==id);saveState();renderLog();renderDashboard();}
+function clearLog(){if(!confirm('Clear all dose history?'))return;state.doses=[];saveState();renderLog();renderDashboard();}
+function renderLog(){const filter=document.getElementById('log-filter')?.value||'',el=document.getElementById('log-list');let doses=filter?state.doses.filter(d=>d.medId===filter):state.doses;if(!doses.length){el.innerHTML='<div class="empty">No doses logged.</div>';return;}el.innerHTML=doses.map(d=>{const med=state.medications.find(m=>m.id===d.medId),idx=state.medications.indexOf(med),cf=med?.conversionFactor||1;return`<div class="log-entry"><div class="log-dot" style="background:${MED_COLORS[idx%MED_COLORS.length]||'#64748b'}"></div><div class="log-main"><div class="log-name">${med?med.name:'?'} — ${fmtN(d.amount)} ${med?.unit||''}</div><div class="log-detail">${fmtDT(d.time)}${d.volume?' · '+d.volume+'mL':''}${med?.hormone&&cf<1?` · ${fmtN(d.amount*cf)} free`:''}${d.note?' · '+d.note:''}</div></div><button class="btn btn-sm btn-danger" onclick="removeLogEntry('${d.id}')">×</button></div>`;}).join('');}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────────
+let satChartInst=null;
+function renderFlags(){
+  const flags=[];
+  if(state.bloodwork.length){const latest=state.bloodwork[0];for(const m of latest.markers){const{status,range,val}=classifyMarker(m.name,m.value);if(status==='red'||status==='amber'){const isHct=['hematocrit','hct'].includes(canonicalKey(m.name));if(isHct&&val&&val>50){flags.push({type:'warn',icon:'🩸',title:'Hematocrit elevated — consider donating blood',detail:`HCT ${val}% · from ${new Date(latest.date).toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'})}`});}else{flags.push({type:status,icon:status==='red'?'⚠':'◉',title:`${m.name} ${status==='red'?'abnormal':'borderline'}`,detail:`${m.value}${range?` · ref: ${range.min}–${range.max} ${range.unit||''}`:''}  · ${new Date(latest.date).toLocaleDateString([],{month:'short',day:'numeric'})}`});}}}}
+  const fc=document.getElementById('flags-card'),fl=document.getElementById('dash-flags');
+  if(!flags.length){fc.style.display='none';return;}fc.style.display='';
+  fl.innerHTML=flags.map(f=>`<div class="flag-card ${f.type}"><div class="flag-icon">${f.icon}</div><div class="flag-main"><div class="flag-title">${f.title}</div><div class="flag-detail">${f.detail}</div></div></div>`).join('');
+}
+function renderDashboard(){
+  const now=Date.now(),today=new Date();today.setHours(0,0,0,0);
+  document.getElementById('dash-med-count').textContent=state.medications.length;
+  const pools=getPools();document.getElementById('dash-hormone-count').textContent=Object.keys(pools).length;
+  document.getElementById('dash-doses-today').textContent=state.doses.filter(d=>new Date(d.time)>=today).length;
+  renderFlags();
+  const hgEl=document.getElementById('dash-hormone-groups');
+  if(!state.medications.length){hgEl.innerHTML='<div class="empty">Add medications and log doses to see hormone loads.</div>';}
+  else{let hi=0;hgEl.innerHTML=Object.entries(pools).map(([hormone,meds])=>{const hColor=HORMONE_COLORS[hi++%HORMONE_COLORS.length];let tF=0;const unit=meds[0].unit;const lines=meds.map(m=>{const cs=calcCS(m,now),fs=c2h(m,cs);tF+=fs;const idx=state.medications.indexOf(m);return`<div class="med-pill" style="margin-bottom:5px;"><div class="med-dot" style="background:${MED_COLORS[idx%MED_COLORS.length]}"></div><div class="med-info"><div class="med-name" style="font-size:13px;">${m.name}</div><div class="med-sub">${fmtN(cs)} ${m.unit} total · ${fmtN(fs)} ${m.unit} free</div></div></div>`;}).join('');const hm=meds.length>1||((meds[0].conversionFactor||1)<1);return`<div class="hormone-group"><div class="hormone-group-header"><div style="display:flex;align-items:center;gap:8px;"><div style="width:12px;height:12px;border-radius:50%;background:${hColor};flex-shrink:0;"></div><span class="hormone-group-name">${hormone}</span></div>${hm?`<span class="hormone-total">${fmtN(tF)} ${unit}</span>`:''}</div><div class="hormone-compounds">${lines}</div></div>`;}).join('');}
+  const rEl=document.getElementById('dash-recent');const recent=state.doses.slice(0,5);
+  if(!recent.length){rEl.innerHTML='<div class="empty">No doses logged.</div>';}
+  else rEl.innerHTML=recent.map(d=>{const med=state.medications.find(m=>m.id===d.medId),idx=state.medications.indexOf(med);return`<div class="log-entry"><div class="log-dot" style="background:${MED_COLORS[idx%MED_COLORS.length]||'#64748b'}"></div><div class="log-main"><div class="log-name">${med?med.name:'?'} — ${fmtN(d.amount)} ${med?.unit||''}</div><div class="log-detail">${fmtDT(d.time)}</div></div></div>`;}).join('');
+  renderSatChart();
+}
+function setChartMode(mode,btn){chartMode=mode;document.querySelectorAll('#tab-dashboard .chart-toggle-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderSatChart();}
+function renderSatChart(){
+  const canvas=document.getElementById('satChart');if(!canvas)return;const ctx=canvas.getContext('2d');
+  const now=Date.now(),days=30,points=100,step=(days*24*3600000)/points,start=now-10*24*3600000;
+  const labels=[];for(let i=0;i<=points;i++)labels.push(new Date(start+i*step).toLocaleDateString([],{month:'short',day:'numeric'}));
+  let datasets=[];const legendEl=document.getElementById('curve-legend');
+  if(chartMode==='hormone'){const pools=getPools();let hi=0;for(const[hormone,meds]of Object.entries(pools)){const color=HORMONE_COLORS[hi++%HORMONE_COLORS.length];const data=[];for(let j=0;j<=points;j++){const t=start+j*step;let total=0;for(const m of meds)total+=c2h(m,calcCS(m,t));data.push(total);}datasets.push({label:hormone,data,borderColor:color,backgroundColor:color+'15',fill:true,tension:0.4,borderWidth:2,pointRadius:0});}legendEl.innerHTML=Object.keys(pools).map((h,i)=>`<span style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);"><span style="width:10px;height:3px;border-radius:2px;background:${HORMONE_COLORS[i%HORMONE_COLORS.length]};display:inline-block;"></span>${h}</span>`).join('');}
+  else{datasets=state.medications.map((m,i)=>{const color=MED_COLORS[i%MED_COLORS.length];const data=[];for(let j=0;j<=points;j++)data.push(calcCS(m,start+j*step));return{label:m.name,data,borderColor:color,backgroundColor:color+'15',fill:true,tension:0.4,borderWidth:2,pointRadius:0};});legendEl.innerHTML=state.medications.map((m,i)=>`<span style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);"><span style="width:10px;height:3px;border-radius:2px;background:${MED_COLORS[i%MED_COLORS.length]};display:inline-block;"></span>${m.name}</span>`).join('');}
+  if(satChartInst)satChartInst.destroy();
+  satChartInst=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>` ${c.dataset.label}: ${fmtN(c.parsed.y)}`}}},scales:{x:{ticks:{maxTicksLimit:6,color:'#64748b',font:{size:10}},grid:{color:'rgba(56,189,248,0.06)'}},y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(56,189,248,0.06)'},beginAtZero:true}}}});
+}
+
+// ── Steady State ───────────────────────────────────────────────────────────────
+function ssSyncDefaults(){const med=state.medications.find(m=>m.id===document.getElementById('ss-med-select').value);if(med&&med.dose)document.getElementById('ss-dose').value=med.dose;}
+let ssSimChartInst=null;
+function renderSsCard(med,dose,ih,color){
+  const ss=ssCalc(med,dose,ih);if(!ss)return'';
+  const now=Date.now(),cc=calcCS(med,now),cp=Math.min(100,(cc/ss.css)*100);
+  const pc=p=>p>=95?'#34d399':p>=75?'#fbbf24':'#38bdf8';
+  const sh=med.hormone&&(med.conversionFactor||1)<1;
+  return`<div class="ss-card"><div class="ss-header"><div class="ss-dot" style="background:${color}"></div><span class="ss-name">${med.name}</span><span class="ss-unit">${fmtN(dose)} ${med.unit} / ${fmtH(ih)}</span></div><div class="ss-milestones">${[{p:'90%',h:ss.h90,c:'#38bdf8'},{p:'95%',h:ss.h95,c:'#818cf8'},{p:'99%',h:ss.h99,c:'#34d399'}].map(m=>`<div class="ss-milestone"><div class="ss-pct" style="color:${m.c}">${m.p}</div><div class="ss-time">${fmtH(m.h)}</div></div>`).join('')}</div><div style="margin-bottom:6px;"><div class="ss-bar-wrap"><div class="ss-bar" style="width:${cp.toFixed(1)}%;background:${pc(cp)}"></div></div><div class="ss-bar-label"><span>Current: <strong style="color:${pc(cp)}">${cp.toFixed(1)}%</strong></span><span>${fmtN(cc)} / ${fmtN(ss.css)} ${med.unit}</span></div></div><div class="ss-peak-info">Trough at steady state: <strong>${fmtN(ss.css)} ${med.unit}</strong>${sh?` · <strong>${fmtN(ss.cssH)} ${med.unit} free ${med.hormone}</strong>`:''}</div></div>`;
+}
+function renderSteadyState(){const el=document.getElementById('ss-schedule-list');if(!state.schedules.length){el.innerHTML='<div class="empty">Add scheduled protocols in the Schedule tab.</div>';}else el.innerHTML=state.schedules.map(s=>{const med=state.medications.find(m=>m.id===s.medId);if(!med)return'';return renderSsCard(med,s.amount,s.interval/3600000,MED_COLORS[state.medications.indexOf(med)%MED_COLORS.length]);}).join('');}
+function runSsSimulator(){
+  const medId=document.getElementById('ss-med-select').value;if(!medId)return alert('Select a compound.');
+  const med=state.medications.find(m=>m.id===medId),dose=parseFloat(document.getElementById('ss-dose').value);if(!dose||dose<=0)return alert('Enter a valid dose.');
+  const ih=parseFloat(document.getElementById('ss-interval').value);if(!ih||ih<=0)return alert('Enter a valid interval.');
+  const idx=state.medications.indexOf(med),color=MED_COLORS[idx%MED_COLORS.length];
+  const ss=ssCalc(med,dose,ih);if(!ss){document.getElementById('ss-simulator-result').innerHTML='<div class="empty">Could not calculate.</div>';return;}
+  const sh=med.hormone&&(med.conversionFactor||1)<1;
+  const td=Math.ceil(ss.h99/ih)+3,sp=td*20,step=(td*ih*3600000)/sp,t0=Date.now();
+  const sl=[],sd=[],sdh=[];
+  for(let i=0;i<=sp;i++){const t=t0+i*step;let c=0;for(let n=0;n<td;n++){const dt=t0+n*ih*3600000;if(dt>t)break;c+=dose*Math.pow(0.5,(t-dt)/(med.halfLife*3600000));}sl.push(fmtH(Math.round(i*step/3600000)));sd.push(c);sdh.push(c2h(med,c));}
+  const t90=ss.css*0.90,t95=ss.css*0.95,t99=ss.css*0.99;
+  const cid='ss-sim-'+uid();
+  document.getElementById('ss-simulator-result').innerHTML=`${renderSsCard(med,dose,ih,color)}<div class="card" style="margin-top:0;"><div class="card-title">Build-up curve</div><div style="position:relative;width:100%;height:200px;"><canvas id="${cid}"></canvas></div></div>`;
+  setTimeout(()=>{const cv=document.getElementById(cid);if(!cv)return;const ctx2=cv.getContext('2d');if(ssSimChartInst)ssSimChartInst.destroy();const ds=[{label:'Compound',data:sd,borderColor:color,backgroundColor:'transparent',tension:0.2,borderWidth:2,pointRadius:0}];if(sh)ds.push({label:'Free',data:sdh,borderColor:'#34d399',backgroundColor:'transparent',tension:0.2,borderWidth:1.5,borderDash:[4,3],pointRadius:0});ssSimChartInst=new Chart(ctx2,{type:'line',data:{labels:sl,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},scales:{x:{ticks:{maxTicksLimit:8,color:'#64748b',font:{size:10}},grid:{color:'rgba(56,189,248,0.06)'}},y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(56,189,248,0.06)'},beginAtZero:true,max:ss.css*1.08}}},plugins:[{id:'tl',afterDraw(chart){const{ctx:c,chartArea:{left,right},scales:{y}}=chart;[{v:t90,cl:'#38bdf8',lb:'90%'},{v:t95,cl:'#818cf8',lb:'95%'},{v:t99,cl:'#34d399',lb:'99%'}].forEach(l=>{try{const yp=y.getPixelForValue(l.v);c.save();c.setLineDash([5,4]);c.strokeStyle=l.cl+'aa';c.lineWidth=1;c.beginPath();c.moveTo(left,yp);c.lineTo(right,yp);c.stroke();c.setLineDash([]);c.fillStyle=l.cl;c.font='10px IBM Plex Mono,monospace';c.fillText(l.lb,right-28,yp-3);c.restore();}catch(e){}});}}]});},50);
+}
+
+// ── Schedule ───────────────────────────────────────────────────────────────────
+document.getElementById('sched-freq').addEventListener('change',function(){document.getElementById('custom-interval-row').style.display=this.value==='custom'?'':'none';});
+let schedChartInst=null;
+function addSchedule(){const medId=document.getElementById('sched-med').value;if(!medId)return alert('Select a compound.');const amount=parseFloat(document.getElementById('sched-amount').value);if(!amount||amount<=0)return alert('Enter a valid dose.');const start=document.getElementById('sched-start').value,end=document.getElementById('sched-end').value;if(!start||!end)return alert('Enter start and end dates.');let interval=parseInt(document.getElementById('sched-freq').value);if(isNaN(interval))interval=parseFloat(document.getElementById('sched-custom-hours').value)*3600000;if(!interval||interval<=0)return alert('Invalid interval.');state.schedules.push({id:uid(),medId,amount,start:new Date(start).toISOString(),end:new Date(end+'T23:59').toISOString(),interval});saveState();renderScheduleList();renderSchedChart();showToast('Schedule added');}
+function removeSchedule(id){state.schedules=state.schedules.filter(s=>s.id!==id);saveState();renderScheduleList();renderSchedChart();}
+function renderScheduleList(){const el=document.getElementById('sched-list');if(!state.schedules.length){el.innerHTML='<div class="empty">No schedules added.</div>';return;}const fl={'86400000':'Daily','43200000':'2×/day','259200000':'Every 3d','302400000':'2×/wk','604800000':'Weekly','1209600000':'Every 2wk'};el.innerHTML=state.schedules.map(s=>{const med=state.medications.find(m=>m.id===s.medId),idx=state.medications.indexOf(med),freq=fl[s.interval]||(s.interval/3600000).toFixed(1)+'h';return`<div class="med-pill"><div class="med-dot" style="background:${MED_COLORS[idx%MED_COLORS.length]||'#64748b'}"></div><div class="med-info"><div class="med-name">${med?.name||'?'} — ${fmtN(s.amount)} ${med?.unit||''}</div><div class="med-sub">${freq} · ${new Date(s.start).toLocaleDateString()} → ${new Date(s.end).toLocaleDateString()}</div></div><button class="btn btn-sm btn-danger" onclick="removeSchedule('${s.id}')">×</button></div>`;}).join('');}
+function setSchedChartMode(mode,btn){schedChartMode=mode;document.querySelectorAll('#tab-schedule .chart-toggle-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderSchedChart();}
+function renderSchedChart(){const canvas=document.getElementById('schedChart');if(!canvas)return;const ctx=canvas.getContext('2d'),now=Date.now(),days=90,points=150,step=(days*24*3600000)/points,start=now-7*24*3600000;const labels=[];for(let i=0;i<=points;i++)labels.push(new Date(start+i*step).toLocaleDateString([],{month:'short',day:'numeric'}));let datasets=[];const legendEl=document.getElementById('sched-legend');if(schedChartMode==='hormone'){const pools=getPools();let hi=0;for(const[hormone,meds]of Object.entries(pools)){const color=HORMONE_COLORS[hi++%HORMONE_COLORS.length];const data=[];for(let j=0;j<=points;j++){const t=start+j*step;let total=0;for(const m of meds)total+=c2h(m,calcCSS(m,t));data.push(total);}datasets.push({label:hormone,data,borderColor:color,backgroundColor:color+'15',fill:true,tension:0.4,borderWidth:2,pointRadius:0});}legendEl.innerHTML=Object.keys(pools).map((h,i)=>`<span style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);"><span style="width:10px;height:3px;border-radius:2px;background:${HORMONE_COLORS[i%HORMONE_COLORS.length]};display:inline-block;"></span>${h}</span>`).join('');}else{datasets=state.medications.map((m,i)=>{const color=MED_COLORS[i%MED_COLORS.length];const data=[];for(let j=0;j<=points;j++)data.push(calcCSS(m,start+j*step));return{label:m.name,data,borderColor:color,backgroundColor:color+'15',fill:true,tension:0.4,borderWidth:2,pointRadius:0};});legendEl.innerHTML=state.medications.map((m,i)=>`<span style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);"><span style="width:10px;height:3px;border-radius:2px;background:${MED_COLORS[i%MED_COLORS.length]};display:inline-block;"></span>${m.name}</span>`).join('');}if(schedChartInst)schedChartInst.destroy();schedChartInst=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>` ${c.dataset.label}: ${fmtN(c.parsed.y)}`}}},scales:{x:{ticks:{maxTicksLimit:8,color:'#64748b',font:{size:10}},grid:{color:'rgba(56,189,248,0.06)'}},y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(56,189,248,0.06)'},beginAtZero:true}}}});}
+
+// ── Bloodwork ──────────────────────────────────────────────────────────────────
+function addMarkerInput(){const el=document.getElementById('blood-markers-input'),row=document.createElement('div');row.className='form-row';row.style.marginBottom='8px';row.innerHTML='<input type="text" placeholder="Marker name" autocomplete="off"><input type="text" placeholder="Value (e.g. 850 ng/dL)" autocomplete="off">';el.appendChild(row);}
+function logBloodwork(){
+  const date=document.getElementById('blood-date').value;if(!date)return alert('Select a date.');
+  const markers=[];document.querySelectorAll('#blood-markers-input .form-row').forEach(row=>{const inputs=row.querySelectorAll('input');const name=inputs[0].value.trim(),value=inputs[1].value.trim();if(name&&value)markers.push({name,value});});
+  if(!markers.length)return alert('Add at least one marker.');
+  const meds=[...document.querySelectorAll('#blood-meds-check input:checked')].map(i=>i.value);
+  state.bloodwork.push({id:uid(),date,markers,meds,notes:document.getElementById('blood-notes').value.trim()});
+  state.bloodwork.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  saveState();renderBloodwork();renderFlags();
+  document.getElementById('blood-markers-input').innerHTML='';document.getElementById('blood-notes').value='';document.querySelectorAll('#blood-meds-check input').forEach(i=>i.checked=false);addMarkerInput();showToast('Blood test saved');
+}
+function removeBlood(id){state.bloodwork=state.bloodwork.filter(b=>b.id!==id);saveState();renderBloodwork();renderFlags();}
+function renderBloodwork(){
+  const el=document.getElementById('blood-list');if(!state.bloodwork.length){el.innerHTML='<div class="empty">No results logged.</div>';return;}
+  el.innerHTML=state.bloodwork.map(b=>{
+    const meds=b.meds.map(id=>state.medications.find(m=>m.id===id)?.name).filter(Boolean);
+    const cards=b.markers.map(m=>{
+      const{status,range,val}=classifyMarker(m.name,m.value);
+      const sc={'green':'var(--green)','amber':'var(--amber)','red':'var(--red)','none':'var(--muted)'};
+      const sl={green:'Normal',amber:'Borderline',red:'Abnormal',none:''};
+      const color=sc[status];
+      let barHtml='';
+      if(range&&val!==null){let pct;if(range.max>=900){pct=val>=range.min?60:Math.max(0,(val/range.min)*50);}else{const fl=range.min*0.7,fh=range.max*1.3;pct=Math.max(0,Math.min(100,((val-fl)/(fh-fl))*100));}const bc=sc[status]==='var(--muted)'?'#64748b':sc[status];barHtml=`<div class="range-bar-wrap"><div class="range-bar-fill" style="width:${pct.toFixed(1)}%;background:${bc}"></div></div>`;}
+      const rt=range?`${range.min}–${range.max} ${range.unit||''}`:''
+      return`<div class="blood-marker-card" onclick="openTrend('${m.name.replace(/'/g,"\\'")}')"><div class="blood-marker-name">${m.name}</div><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><span class="blood-marker-value" style="color:${color}">${m.value}</span>${status!=='none'?`<span class="range-badge ${status}">${sl[status]}</span>`:''}</div>${barHtml}${rt?`<div class="blood-marker-range">ref: ${rt}</div>`:''}</div>`;
+    }).join('');
+    return`<div class="blood-entry"><div class="blood-entry-header"><div><div class="blood-entry-date">${new Date(b.date).toLocaleDateString([],{year:'numeric',month:'long',day:'numeric'})}</div>${meds.length?`<div class="blood-entry-meds">${meds.join(' · ')}</div>`:''}</div><button class="btn btn-sm btn-danger" onclick="removeBlood('${b.id}')">×</button></div><div class="blood-markers-grid">${cards}</div>${b.notes?`<div style="font-size:12px;color:var(--muted);margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">${b.notes}</div>`:''}</div>`;
+  }).join('');
+}
+
+// ── Trend ──────────────────────────────────────────────────────────────────────
+let trendChartInst=null;
+function openTrend(markerName){
+  const points=[];
+  for(const b of state.bloodwork){const m=b.markers.find(x=>canonicalKey(x.name)===canonicalKey(markerName)||x.name.toLowerCase().includes(markerName.toLowerCase())||markerName.toLowerCase().includes(x.name.toLowerCase()));if(m){const val=parseNum(m.value);if(val!==null)points.push({date:b.date,val,raw:m.value});}}
+  points.sort((a,b)=>new Date(a.date)-new Date(b.date));
+  if(!points.length){showToast('No data for '+markerName);return;}
+  document.getElementById('trend-title').textContent=markerName;
+  const range=getRange(markerName);
+  document.getElementById('trend-range-info').innerHTML=range?`Reference: <strong>${range.min}–${range.max} ${range.unit||''}</strong>${state.customRanges[canonicalKey(markerName)]?' (custom)':''}`:markerName+' — no reference range configured';
+  const vals=points.map(p=>p.val),latest=vals[vals.length-1],mn=Math.min(...vals),mx=Math.max(...vals),avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const{status}=classifyMarker(markerName,String(latest));
+  const sc={'green':'var(--green)','amber':'var(--amber)','red':'var(--red)','none':'var(--cyan)'};
+  document.getElementById('trend-stats').innerHTML=`<div class="trend-stat"><div class="trend-stat-val" style="color:${sc[status]}">${fmtN(latest)}</div><div class="trend-stat-lbl">Latest</div></div><div class="trend-stat"><div class="trend-stat-val">${fmtN(avg)}</div><div class="trend-stat-lbl">Average</div></div><div class="trend-stat"><div class="trend-stat-val">${fmtN(mn)}/${fmtN(mx)}</div><div class="trend-stat-lbl">Min/Max</div></div>`;
+  document.getElementById('trend-overlay').style.display='flex';
+  setTimeout(()=>{
+    const canvas=document.getElementById('trendChart');if(!canvas)return;
+    const ctx=canvas.getContext('2d');if(trendChartInst)trendChartInst.destroy();
+    const lineColor=status==='green'?'#34d399':status==='amber'?'#fbbf24':status==='red'?'#f87171':'#38bdf8';
+    trendChartInst=new Chart(ctx,{type:'line',data:{labels:points.map(p=>new Date(p.date).toLocaleDateString([],{month:'short',day:'numeric',year:'2-digit'})),datasets:[{label:markerName,data:vals,borderColor:lineColor,backgroundColor:lineColor+'20',fill:true,tension:0.35,borderWidth:2.5,pointRadius:5,pointBackgroundColor:lineColor}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmtN(c.parsed.y)} ${range?.unit||''}`}}},scales:{x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(56,189,248,0.06)'}},y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(56,189,248,0.06)'},beginAtZero:false}}},plugins:[{id:'rl',afterDraw(chart){if(!range)return;const{ctx:c,chartArea:{left,right},scales:{y}}=chart;[{val:range.min,label:'min'},{val:range.max,label:'max'}].forEach(l=>{try{const yp=y.getPixelForValue(l.val);c.save();c.setLineDash([4,4]);c.strokeStyle='#64748b88';c.lineWidth=1;c.beginPath();c.moveTo(left,yp);c.lineTo(right,yp);c.stroke();c.setLineDash([]);c.fillStyle='#64748bcc';c.font='10px IBM Plex Mono,monospace';c.fillText(l.label,left+4,yp-3);c.restore();}catch(e){}});}}]});
+  },50);
+}
+function closeTrend(e){if(!e||e.target===document.getElementById('trend-overlay')){document.getElementById('trend-overlay').style.display='none';}}
+
+// ── Journal ────────────────────────────────────────────────────────────────────
+function selectMood(btn){document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');selectedMood=btn.dataset.mood;}
+function addJournalEntry(){
+  const date=document.getElementById('journal-date').value;if(!date)return alert('Select a date.');
+  const text=document.getElementById('journal-text').value.trim();if(!text)return alert('Write something first.');
+  const tags=document.getElementById('journal-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  state.journal.push({id:uid(),date,mood:selectedMood,text,tags});
+  state.journal.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  saveState();renderJournal();
+  document.getElementById('journal-text').value='';document.getElementById('journal-tags').value='';
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));selectedMood='';
+  showToast('Entry saved');
+}
+function removeJournalEntry(id){state.journal=state.journal.filter(j=>j.id!==id);saveState();renderJournal();}
+function renderJournal(){
+  const q=(document.getElementById('journal-search')?.value||'').toLowerCase(),el=document.getElementById('journal-list');
+  let entries=state.journal;if(q)entries=entries.filter(j=>j.text.toLowerCase().includes(q)||j.tags.some(t=>t.toLowerCase().includes(q)));
+  if(!entries.length){el.innerHTML=`<div class="empty">${q?'No entries match.':'No journal entries yet.'}</div>`;return;}
+  el.innerHTML=entries.map(j=>`<div class="journal-entry"><div class="journal-entry-header"><div style="display:flex;align-items:center;gap:8px;"><span class="journal-date">${new Date(j.date).toLocaleDateString([],{weekday:'short',year:'numeric',month:'short',day:'numeric'})}</span>${j.mood?`<span class="journal-mood">${j.mood}</span>`:''}</div><button class="btn btn-sm btn-danger" onclick="removeJournalEntry('${j.id}')">×</button></div><div class="journal-text">${j.text}</div>${j.tags.length?`<div class="journal-tags">${j.tags.map(t=>`<span class="journal-tag">${t}</span>`).join('')}</div>`:''}</div>`).join('');
+}
+
+// ── Ranges ─────────────────────────────────────────────────────────────────────
+function renderRangesPanel(){
+  const el=document.getElementById('ranges-panel');
+  const grouped={};for(const r of REF_LIBRARY){if(!grouped[r.group])grouped[r.group]=[];if(!grouped[r.group].find(x=>x.label===r.label))grouped[r.group].push(r);}
+  el.innerHTML=GROUP_ORDER.map(group=>{if(!grouped[group])return'';const rows=grouped[group].map(r=>{const ck=canonicalKey(r.label),custom=state.customRanges[ck];return`<div class="ref-row"><span class="ref-name">${r.label}</span><span class="ref-range">${custom?`<span class="ref-custom">${custom.min}–${custom.max} (custom)</span>`:`${r.min}–${r.max} ${r.unit}`}</span><button class="ref-edit-btn" onclick="toggleRefEditor('${ck}',${r.min},${r.max},'${r.unit}')">edit</button></div><div class="ref-editor" id="ref-editor-${ck.replace(/\s/g,'-')}"><div class="ref-editor-row"><div><label style="margin-top:0;">Min</label><input type="number" id="ref-min-${ck.replace(/\s/g,'-')}" placeholder="${r.min}" step="any" inputmode="decimal"></div><div><label style="margin-top:0;">Max</label><input type="number" id="ref-max-${ck.replace(/\s/g,'-')}" placeholder="${r.max}" step="any" inputmode="decimal"></div></div><div class="ref-editor-btns"><button class="btn btn-sm" onclick="saveCustomRange('${ck}','${r.unit}')">Save</button>${custom?`<button class="btn btn-sm btn-danger" onclick="clearCustomRange('${ck}')">Reset</button>`:''}</div></div>`;}).join('');return`<div class="ref-group"><div class="ref-group-title">${group}</div>${rows}</div>`;}).join('');
+}
+function toggleRefEditor(key,min,max,unit){const sk=key.replace(/\s/g,'-'),el=document.getElementById('ref-editor-'+sk);if(!el)return;const isOpen=el.classList.contains('open');document.querySelectorAll('.ref-editor.open').forEach(e=>e.classList.remove('open'));if(!isOpen){el.classList.add('open');const custom=state.customRanges[key];const mi=document.getElementById('ref-min-'+sk),ma=document.getElementById('ref-max-'+sk);if(mi)mi.value=custom?custom.min:'';if(ma)ma.value=custom?custom.max:'';}}
+function saveCustomRange(key,du){const sk=key.replace(/\s/g,'-'),minVal=parseFloat(document.getElementById('ref-min-'+sk)?.value),maxVal=parseFloat(document.getElementById('ref-max-'+sk)?.value);if(isNaN(minVal)||isNaN(maxVal))return alert('Enter valid values.');if(minVal>=maxVal)return alert('Min must be less than max.');state.customRanges[key]={min:minVal,max:maxVal,unit:du};saveState();showToast('Custom range saved');renderRangesPanel();renderBloodwork();}
+function clearCustomRange(key){delete state.customRanges[key];saveState();showToast('Reset to default');renderRangesPanel();renderBloodwork();}
+
+// ── Export ─────────────────────────────────────────────────────────────────────
+function escCsv(v){if(v===null||v===undefined)return'';const s=String(v);if(s.includes(',')||s.includes('"')||s.includes('\n'))return'"'+s.replace(/"/g,'""')+'"';return s;}
+function buildCsv(h,rows){return[h,...rows].map(r=>r.map(escCsv).join(',')).join('\n');}
+function downloadCsv(fn,csv){const b=new Blob([csv],{type:'text/csv;charset=utf-8;'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=fn;a.style.display='none';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);document.body.removeChild(a);},500);}
+function getMedRows(){return state.medications.map(m=>[m.name,m.hormone||'',m.category,m.halfLife,m.unit,m.conversionFactor||1,m.dose||'',m.concentration||'',m.notes||'']);}
+function getDoseRows(){return state.doses.map(d=>{const med=state.medications.find(m=>m.id===d.medId),cf=med?.conversionFactor||1,fh=(cf<1&&med?.hormone)?(d.amount*cf).toFixed(4):'',dt=new Date(d.time);return[dt.toLocaleDateString([],{year:'numeric',month:'2-digit',day:'2-digit'}),dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),med?.name||'Unknown',med?.hormone||'',d.amount,med?.unit||'',fh,d.volume||'',d.note||''];});}
+function renderExportTab(){
+  const mc=state.medications.length,dc=state.doses.length;
+  document.getElementById('export-med-count').textContent=mc+' compound'+(mc!==1?'s':'');
+  document.getElementById('export-dose-count').textContent=dc+' entr'+(dc!==1?'ies':'y');
+}
+function exportMedications(){if(!state.medications.length)return alert('No medications to export.');const d=new Date().toISOString().slice(0,10);downloadCsv(`halflife-medications-${d}.csv`,buildCsv(['Name','Active Hormone','Category','Half-Life (h)','Unit','Conversion Factor','Standard Dose','Concentration','Notes'],getMedRows()));showToast('Medications exported');}
+function exportDoses(){if(!state.doses.length)return alert('No dose history to export.');const d=new Date().toISOString().slice(0,10);downloadCsv(`halflife-doses-${d}.csv`,buildCsv(['Date','Time','Compound','Hormone Pool','Amount','Unit','Free Hormone','Volume (mL)','Notes'],getDoseRows()));showToast('Dose history exported');}
+
+// ── Clock + Init ───────────────────────────────────────────────────────────────
+function updateClock(){document.getElementById('current-time').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+setInterval(updateClock,1000);updateClock();
+
+function init(){
+  loadState();loadTheme();
+  const now=new Date();now.setSeconds(0,0);document.getElementById('log-time').value=now.toISOString().slice(0,16);
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('sched-start').value=today;document.getElementById('sched-end').value=new Date(Date.now()+30*24*3600000).toISOString().slice(0,10);
+  document.getElementById('blood-date').value=today;document.getElementById('journal-date').value=today;
+  renderEsterPresets();addMarkerInput();renderMedList();updateSelects();renderLog();renderBloodwork();renderDashboard();
+}
+init();
+</script>
+</body>
+</html>
